@@ -39,7 +39,13 @@ async function loadHealth() {
   health = await api('/health');
   $('#connection').classList.toggle('busy', Boolean(health.active));
   $('#connection').textContent = health.active ? `正在查询 · ${health.active.keyword} / ${health.active.stage}` : health.apiConfigured ? '● 服务已连接 · 官方 API 已配置' : '● 服务已启动 · 请在设置中填写自己的 API Key';
-  if (health.schedulerError) $('#connection').textContent += ` · 定时错误：${health.schedulerError}`;
+  const schedule = health.scheduler;
+  if (schedule) {
+    if (schedule.state.startsWith('waiting_')) $('#connection').textContent += ` · ${schedule.message}`;
+    if (schedule.state === 'error') $('#connection').textContent += ` · 定时错误：${schedule.message}`;
+    $('#schedule-status').textContent = schedule.message;
+    $('#schedule-status').classList.toggle('waiting',schedule.state.startsWith('waiting_'));
+  }
 }
 async function loadKeywords() {
   [keywords, options] = await Promise.all([api('/keywords'),api('/keyword-options')]);
@@ -202,7 +208,8 @@ $('#remove-key').addEventListener('click',()=>action(()=>keyAction($('#remove-ke
 })));
 $('#settings-form').addEventListener('submit',event => {event.preventDefault();action(async()=>{
   const f = event.target.elements;
-  settings = await send('/settings',{thinking:f.thinking.checked,readUrls:f.readUrls.checked,scheduleEnabled:f.scheduleEnabled.checked,scheduleTimes:f.scheduleTimes.value.split(/[,，\n]/).map(s=>s.trim()).filter(Boolean),timezone:f.timezone.value.trim()},'PUT'); toast('设置已保存');
+  settings = await send('/settings',{thinking:f.thinking.checked,readUrls:f.readUrls.checked,scheduleEnabled:f.scheduleEnabled.checked,scheduleTimes:f.scheduleTimes.value.split(/[,，\n]/).map(s=>s.trim()).filter(Boolean),timezone:f.timezone.value.trim()},'PUT');
+  await loadHealth(); toast(health.scheduler?.state === 'waiting_api_key' ? '定时已保存，填写 API Key 后从下个计划时间执行' : '设置已保存');
 });});
 window.addEventListener('hashchange',()=>action(showView));
 await action(async()=>{

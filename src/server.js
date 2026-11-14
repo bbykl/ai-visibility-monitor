@@ -57,7 +57,7 @@ function keywordBody(body) {
   if (body.enabled !== undefined && typeof body.enabled !== 'boolean') throw new Error('启用状态格式错误');
   return { text: body.text.trim(), enabled: body.enabled !== false };
 }
-app.get('/api/health', (req, res) => res.json({ ok: true, apiConfigured: Boolean(credentials.key), model: config.model, channel: 'official_api', ...runner.status(), schedulerError: scheduler.lastError }));
+app.get('/api/health', (req, res) => res.json({ ok: true, apiConfigured: Boolean(credentials.key), model: config.model, channel: 'official_api', ...runner.status(), scheduler:scheduler.status(), schedulerError: scheduler.lastError }));
 app.get('/api/credentials', (req, res) => res.json(credentials.status()));
 function ensureKeyChangeAllowed(res) {
   if (runner.active || runner.queue.length) { res.status(409).json({ error:'请在查询任务结束后修改密钥' }); return false; }
@@ -65,11 +65,13 @@ function ensureKeyChangeAllowed(res) {
 }
 app.put('/api/credentials', (req, res) => {
   if (!ensureKeyChangeAllowed(res)) return;
-  res.json(credentials.save(validateApiKey(req.body.apiKey)));
+  const result = credentials.save(validateApiKey(req.body.apiKey));
+  scheduler.reload(); res.json(result);
 });
 app.delete('/api/credentials', (req, res) => {
   if (!ensureKeyChangeAllowed(res)) return;
-  res.json(credentials.save(''));
+  const result = credentials.save('');
+  scheduler.reload(); res.json(result);
 });
 app.post('/api/check-key', async (req, res, next) => {
   try { res.json(await verifyKey(req.body?.apiKey === undefined ? credentials.key : validateApiKey(req.body.apiKey))); }
