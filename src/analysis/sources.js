@@ -1,3 +1,5 @@
+import { activitySummary, toolActivity } from './activity.js';
+
 export function normalizeUrl(value) {
   try {
     const url = new URL(value);
@@ -9,7 +11,7 @@ export function normalizeUrl(value) {
 
 export function normalizeMessage(message) {
   const sources = new Map(), citations = [], calls = new Map(), toolErrors = [];
-  const searchQueries = [], text = [];
+  const text = [];
   function source(raw) {
     const url = normalizeUrl(raw.url);
     if (!url) return null;
@@ -28,7 +30,6 @@ export function normalizeMessage(message) {
   for (const block of message.content || []) {
     if (block.type === 'server_tool_use') {
       calls.set(block.id, block);
-      if (block.input?.action === 'search') searchQueries.push(...(block.input.queries || [block.input.query]).filter(Boolean));
     }
     if (block.type === 'web_search_tool_result') {
       for (const [i, raw] of (block.content || []).entries()) {
@@ -57,11 +58,9 @@ export function normalizeMessage(message) {
       }
     }
   }
-  const searchCalls = [...calls.values()].filter(call => call.input?.action === 'search');
   return {
     responseText: text.join(''), sources: [...sources.values()], citations,
-    searchQueries: [...new Set(searchQueries)], searchTriggered: searchCalls.length > 0,
-    searchCalls: searchCalls.length, toolErrors, usage: message.usage || {},
+    ...activitySummary(toolActivity(message)), toolErrors, usage: message.usage || {},
     model: message.model, stopReason: message.stop_reason, messageId: message.id,
   };
 }

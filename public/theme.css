@@ -104,4 +104,27 @@ footer { color:#6f657b; }
 .schedule-status { padding:12px 14px; margin-bottom:20px; border:1px solid #e1dce9; border-radius:8px; background:#f6f4f9; color:#63536f; font-size:13px; }
 .schedule-status.waiting { border-color:#d7c7ed; background:#f3ecff; color:#653c92; }
 #api-key { font-family:ui-monospace,Consolas,monospace; }
+.aside-links { display:grid; justify-items:start; gap:8px; }
+.activity-metrics { gap:14px; }
+.activity-metrics .metric { padding:18px 20px; }
+.activity-metrics .metric strong { font-size:28px; margin:6px 0; }
+.tool-timeline { list-style:none; padding:0; margin:30px 0 0; }
+.tool-step { display:flex; align-items:flex-start; gap:16px; position:relative; padding-bottom:22px; }
+.tool-step:not(:last-child)::before { content:''; position:absolute; left:17px; top:36px; bottom:0; width:1px; background:#ded2f5; }
+.step-number { display:grid; place-items:center; flex-shrink:0; width:36px; height:36px; border-radius:50%; background:var(--blue-soft); color:#6a22cc; font-weight:600; font-size:13px; }
+.tool-step-body { min-width:0; flex:1; padding:20px 24px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+.tool-step-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.tool-step-heading h3 { font-size:16px; }
+.search-terms { list-style:none; padding:0; margin:14px 0 0; display:flex; flex-wrap:wrap; gap:8px; }
+.search-terms li { background:#f5f0ff; color:#5c338b; border:1px solid #ece1ff; padding:6px 12px; border-radius:6px; font-size:14px; overflow-wrap:anywhere; max-width:100%; }
+.tool-url,.tool-pattern { margin-top:10px; overflow-wrap:anywhere; font-size:14px; }
+.tool-url a { color:#6327b9; }
+.tool-pattern { color:var(--muted); }
+.tool-error { margin-top:12px; color:#835d30; font-size:13px; }
+.tool-error span { font-family:ui-monospace,Consolas,monospace; }
+.tool-results { margin-top:16px; padding-top:12px; border-top:1px solid var(--line); font-size:13px; }
+.tool-results summary { color:#6a22cc; cursor:pointer; }
+.tool-results ul { padding-left:20px; margin:12px 0 0; }
+.tool-results li { padding:5px 0; overflow-wrap:anywhere; }
+@media(max-width:560px) { .tool-step { gap:10px; } .tool-step-body { padding:16px; } .search-terms { display:grid; } .tool-step-heading { align-items:flex-start; } }
 @media(min-width:1600px) { .metric.accent { padding-top:24px; } }

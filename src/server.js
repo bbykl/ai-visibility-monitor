@@ -8,6 +8,7 @@ import { Runner } from './jobs/runner.js';
 import { Scheduler } from './jobs/scheduler.js';
 import { verifyKey } from './providers/deepseek.js';
 import { credentials, validateApiKey } from './credentials.js';
+import { withToolActivity } from './analysis/activity.js';
 
 const app = express();
 // Reserve the port before opening SQLite: a duplicate launch must not mark the
@@ -112,10 +113,10 @@ app.get('/api/queries', (req, res) => res.json(store.listQueries({
   limit: Math.trunc(Math.max(1, Math.min(100, Number(req.query.limit) || 30))),
   offset: Math.trunc(Math.max(0, Math.min(1000000, Number(req.query.offset) || 0))),
 })));
-app.get('/api/queries/:id', (req, res) => {
+app.get('/api/queries/:id', async (req, res) => {
   const query = store.query(positiveId(req.params.id));
   if (!query) return res.status(404).json({ error: '查询不存在' });
-  res.json(query);
+  res.json(await withToolActivity(query, config.dataDir));
 });
 app.post('/api/queries/:id/reanalyze', (req, res) => res.status(202).json({ id: runner.reanalyze(positiveId(req.params.id)) }));
 app.get('/api/queries/:id/raw', (req, res) => {
