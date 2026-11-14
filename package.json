@@ -1,0 +1,24 @@
+{
+  "name": "ai-visibility-monitor",
+  "version": "1.1.0",
+  "description": "Keyword-first AI visibility monitoring with the official DeepSeek web search API.",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/bbykl/ai-visibility-monitor.git" },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "check-api": "node scripts/check-api.js"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.17",
+    "express": "^5.1.0",
+    "marked": "^18.2.0",
+    "node-cron": "^4.2.1"
+  }
+}
