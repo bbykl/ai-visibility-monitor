@@ -28,14 +28,6 @@ const runner = new Runner(store);
 const scheduler = new Scheduler(store, runner);
 app.disable('x-powered-by');
 app.use((req, res, next) => {
-  // This edition is a local dashboard. Reject cross-site writes and DNS rebinding.
-  const host = req.headers.host?.split(':')[0];
-  if (!['localhost', '127.0.0.1'].includes(host)) return res.status(403).json({ error: '只允许本机访问' });
-  if (!['GET', 'HEAD'].includes(req.method)) {
-    const origin = req.headers.origin;
-    if (origin && ![`http://localhost:${config.port}`, `http://127.0.0.1:${config.port}`].includes(origin)) return res.status(403).json({ error: '请求来源无效' });
-    if (req.get('x-requested-with') !== 'visibility-monitor') return res.status(403).json({ error: '缺少本机应用请求标记' });
-  }
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");

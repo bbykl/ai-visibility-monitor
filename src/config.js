@@ -12,7 +12,7 @@ function integer(name, fallback, min, max) {
 export const config = Object.freeze({
   apiOrigin: 'https://api.deepseek.com',
   model: 'deepseek-flash',
-  host: '127.0.0.1',
+  host: process.env.HOST || '0.0.0.0',
   port: integer('PORT', 5180, 1024, 65535),
   timeoutMs: integer('QUERY_TIMEOUT_MS', 300000, 1000, 1800000),
   dataDir: resolve(rootDir, process.env.DATA_DIR || 'data'),

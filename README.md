@@ -1,6 +1,6 @@
 # 见微 · AI 可见度监测
 
-基于 **DeepSeek 官方联网 API** 的本地监测工具：围绕关键词收集回答，提取公司名称，追踪检索、读取与引用来源，并用历史样本计算任意公司的出现率。
+基于 **DeepSeek 官方联网 API** 的监测工具，支持本机及服务器运行：围绕关键词收集回答，提取公司名称，追踪检索、读取与引用来源，并用历史样本计算任意公司的出现率。
 
 **一次查询，多次分析。** 更换公司或别名时直接复用已保存的回答，不必重新调用联网 API。
 
@@ -16,6 +16,8 @@ npm start
 ```
 
 打开 [http://127.0.0.1:5180](http://127.0.0.1:5180)：
+
+部署在服务器时，打开 `http://服务器IP:5180`；需放行服务器防火墙及云安全组的 TCP 5180 端口。默认监听 `0.0.0.0`，也支持通过解析到服务器的域名访问。
 
 1. 进入 **设置 → 连接你的 DeepSeek**，填写自己的 API Key，保存并验证连接。
 2. 在 **关键词管理** 添加关键词，例如 `上海装修公司推荐`。
@@ -57,7 +59,7 @@ npm start
 ```text
 public/                    前端页面、样式与 Markdown 渲染
 src/
-  server.js                HTTP 接口与本机访问校验
+  server.js                前端静态文件与 HTTP 接口
   config.js                运行配置
   credentials.js           本地密钥保存与状态管理
   providers/               DeepSeek API、SSE 解析
@@ -81,13 +83,33 @@ data/                      本机数据与密钥，自动创建，不提交 Git
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | DEEPSEEK_API_KEY | 空 | 可选，支持在设置页配置 |
-| PORT | 5180 | 本机端口 |
+| HOST | 0.0.0.0 | 监听所有 IPv4 网络接口；设为 127.0.0.1 可限制为本机访问 |
+| PORT | 5180 | 服务端口 |
 | DATA_DIR | ./data | 数据目录 |
 | QUERY_TIMEOUT_MS | 300000 | 单次 API 请求超时，毫秒 |
 
 设置页保存的密钥优先于环境变量，保存后立即生效；移除后不会自动回退使用旧密钥。密钥以明文保存在本机 `data/credentials.json`，接口仅返回配置状态，不回显密钥。`.env`、`data/`、数据库及日志均已加入 `.gitignore`。使用自定义 `DATA_DIR` 时，请将它放在仓库外，或自行加入忽略规则。
 
-本项目面向**单机本地使用**，仅监听 `127.0.0.1`，没有多用户登录与公网部署权限系统。备份和分享文件时请单独保管自己的密钥。
+本项目没有账号密码、Host/Origin 白名单或接口权限校验。能连接服务的人都能查询、修改设置及消耗 API 额度。只希望自己使用时，可在防火墙中限制来源 IP。备份和分享文件时请单独保管自己的密钥。
+
+服务器已有 Docker 时，无需安装 Node。进入项目目录后执行以下命令（Linux shell）：
+
+```bash
+docker run -d \
+  --name ai-visibility-monitor \
+  --init \
+  --restart unless-stopped \
+  -p 5180:5180 \
+  -e HOST=0.0.0.0 \
+  -e PORT=5180 \
+  -v "$PWD:/app" \
+  -v visibility_node_modules:/app/node_modules \
+  -w /app \
+  node:22-bookworm-slim \
+  sh -c "npm ci --omit=dev && npm start"
+```
+
+用 `docker logs -f ai-visibility-monitor` 查看启动日志，然后访问 `http://服务器IP:5180`。查询数据和设置保存在项目的 `data/` 目录中；安装的依赖保存在 Docker 命名卷中。若 `.env` 中配置了自定义 `DATA_DIR`，应确保该容器路径也已挂载持久化目录。
 
 ## 开发与维护
 

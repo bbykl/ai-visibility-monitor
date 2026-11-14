@@ -15,7 +15,7 @@ function link(url, title) {
   return `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(title || url)} <span class="external">↗</span></a>`;
 }
 async function api(path, options = {}) {
-  const res = await fetch('/api' + path, { ...options, headers:{ 'Content-Type':'application/json','X-Requested-With':'visibility-monitor',...options.headers } });
+  const res = await fetch('/api' + path, { ...options, headers:{ 'Content-Type':'application/json',...options.headers } });
   const data = await res.json(); if (!res.ok) throw new Error(data.error || '请求失败'); return data;
 }
 const send = (path, body, method = 'POST') => api(path, { method, body:JSON.stringify(body) });
