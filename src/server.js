@@ -119,7 +119,9 @@ app.get('/api/queries/:id/raw', (req, res) => {
   res.download(path);
 });
 app.get('/api/overview', (req, res) => res.json(store.overview()));
-app.get('/api/sources', (req, res) => res.json(store.topSources(String(req.query.keyword || '').slice(0,1000))));
+app.get('/api/sources', (req, res) => res.json(store.topSources(String(req.query.keyword || '').slice(0,1000), {
+  sort: req.query.sort, direction: req.query.direction,
+})));
 app.get('/api/company-stats', (req, res) => res.json(store.companyStats({
   keyword: String(req.query.keyword || '').slice(0,1000), company: String(req.query.company || '').slice(0,100),
   aliases: list(req.query.aliases ? String(req.query.aliases).split(/[,，\n]/) : [], 30, 100),

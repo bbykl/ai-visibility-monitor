@@ -43,6 +43,37 @@ test('dynamic company rates use valid keyword samples and count each company onc
   } finally { store.close(); }
 });
 
+test('sources rank by the selected metric in either direction within the exact keyword, excluding incomplete answers', () => {
+  const store = new Store(':memory:');
+  const source = (name,searched,fetched,cited) => ({url:`https://example.com/${name}`,domain:'example.com',title:name,snippet:'',publishedAt:null,siteName:null,searched,fetched,cited,searchRank:null});
+  const add = (keyword,sources,status='completed') => {
+    const job = store.createJob({keywords:[keyword]},'test');
+    const id = store.createQuery(job,keyword,{model:'test',thinking:false,rawFile:'test.sse'});
+    store.finishQuery(id,{status,result:{sources,citations:[]},durationMs:1});
+  };
+  const names = (sort,direction='desc',keyword='甲词') => store.topSources(keyword,{sort,direction}).map(s=>s.title);
+  try {
+    add('甲词',[source('A',true,true,false),source('B',true,true,true),source('C',true,false,true)]);
+    add('甲词',[source('A',true,false,false),source('B',true,true,false),source('C',false,false,true)]);
+    add('甲词',[source('A',true,false,false)]);
+    add('甲词延长',[source('D',true,true,true)]);
+    add('乙词',[source('A',true,true,true),source('D',true,true,true)]);
+    add('甲词',[source('D',true,true,true)],'failed');
+    assert.deepEqual(names('cited'),['C','B','A']);
+    assert.deepEqual(names('fetched'),['B','A','C']);
+    assert.deepEqual(names('searched'),['A','B','C']);
+    assert.deepEqual(names('cited','asc'),['A','B','C']);
+    assert.deepEqual(names('fetched','asc'),['C','A','B']);
+    assert.deepEqual(names('searched','asc'),['C','B','A']);
+    assert.deepEqual(names('searched','desc','乙词'),['A','D']); // equal counts use URL order
+    assert.deepEqual(names('cited; DROP TABLE sources','desc;--'),['C','B','A']);
+    assert.deepEqual(store.topSources('甲词').map(s=>s.cited),[2,1,0]);
+    assert.equal(store.topSources('甲词')[0].appearances,2);
+    assert.deepEqual(store.topSources('甲词')[0].keywords,['甲词']);
+    assert.deepEqual(store.topSources('不存在',{sort:'searched'}),[]);
+  } finally { store.close(); }
+});
+
 test('legacy migration preserves answers and sources while converting companies and keyword configuration only once', () => {
   const dir=mkdtempSync(resolve(tmpdir(),'visibility-migrate-')),path=resolve(dir,'test.sqlite');
   let store=new Store(path);

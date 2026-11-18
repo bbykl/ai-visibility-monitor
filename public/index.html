@@ -31,7 +31,16 @@
       <div class="panel"><div class="panel-heading"><div><h2 id="company-breakdown-title">各关键词中的出现情况</h2><p>出现率 = 包含该公司或别名的有效回答数 ÷ 有效回答数；每份回答最多计一次</p></div></div><div id="company-breakdown"></div></div>
       <div class="panel"><div class="panel-heading"><div><h2>回答里出现了哪些公司</h2><p id="company-frequency-note">点击公司名称，复用同一批回答计算</p></div></div><div id="company-frequencies"></div></div>
     </section>
-    <section id="view-sources" class="view hidden"><div class="filter-bar"><label>查询关键词<select id="source-keyword" class="keyword-select"><option value="">全部关键词</option></select></label><label>来源状态<select id="source-stage"><option value="all">全部来源</option><option value="cited">被引用</option><option value="fetched">成功读取</option><option value="searched">被检索</option></select></label><span id="source-count" class="muted"></span></div><div class="info-note">检索表示搜索召回；读取表示官方 API 返回成功抓取记录；引用表示回答使用了该来源。三种状态分别统计。</div><div class="panel" id="sources-table"></div></section>
+    <section id="view-sources" class="view hidden">
+      <div class="filter-bar source-filters">
+        <label>查询关键词<select id="source-keyword" class="keyword-select"><option value="">全部关键词</option></select></label>
+        <label>来源筛选<select id="source-stage"><option value="all">全部来源</option><option value="cited">被引用</option><option value="fetched">成功读取</option><option value="searched">被检索</option></select></label>
+        <label>排序方式<select id="source-sort"><option value="cited-desc">引用次数 · 从多到少</option><option value="cited-asc">引用次数 · 从少到多</option><option value="fetched-desc">读取次数 · 从多到少</option><option value="fetched-asc">读取次数 · 从少到多</option><option value="searched-desc">检索次数 · 从多到少</option><option value="searched-asc">检索次数 · 从少到多</option></select></label>
+        <span id="source-count" class="muted" role="status" aria-live="polite"></span>
+      </div>
+      <div class="info-note">选择查询关键词，比较该词下各 URL 的表现。来源筛选只保留有相应记录的 URL，并默认按该项次数从多到少排序；也可单独选择排序方式，或点击表头切换。次数按已完成的回答统计，同一 URL 在每份回答中每种状态最多计一次。检索、成功读取、回答引用分别统计，引用不代表读取过全文。</div>
+      <div class="panel" id="sources-table"></div>
+    </section>
     <section id="view-keywords" class="view hidden"><div class="panel"><div class="panel-heading"><div><h2>查询关键词库</h2><p>关键词独立于公司。每个任务中，相同关键词只查询一次。</p></div><button class="button primary" id="add-keyword">＋ 添加关键词</button></div><div id="keywords-table"></div></div><div class="info-note">删除或修改关键词配置不会删除历史样本；来源洞察和公司洞察仍可筛选历史关键词。</div></section>
     <section id="view-settings" class="view hidden">
       <form id="credentials-form" class="panel settings-panel" autocomplete="off"><div class="panel-heading"><div><div class="eyebrow">DEEPSEEK API</div><h2>连接你的 DeepSeek</h2><p>填写自己的 API Key，保存后立即生效。</p></div><span id="key-status" class="badge">检查中</span></div><label for="api-key">API Key<input id="api-key" name="apiKey" type="password" autocomplete="new-password" spellcheck="false" maxlength="260" placeholder="sk-…"></label><p class="key-note">密钥仅保存在本机，不会回显或写入代码仓库。留空表示保留现有密钥。</p><div class="key-actions"><button class="button primary" type="submit">保存密钥</button><button class="button subtle" id="check-key" type="button">验证连接</button><button class="text-button danger" id="remove-key" type="button">移除密钥</button></div><div id="key-feedback" class="key-feedback" role="status"></div><p class="key-note">在 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer">DeepSeek 开放平台 ↗</a> 创建密钥。API 调用使用你自己的额度。</p></form>

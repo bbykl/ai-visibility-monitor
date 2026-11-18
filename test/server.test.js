@@ -7,6 +7,7 @@ import { mkdtempSync,rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { rootDir } from '../src/config.js';
+import { Store } from '../src/storage/store.js';
 
 test('server accepts IP/domain access and unmarked writes; credentials never expose secrets, and removal persists', async () => {
   const dir=mkdtempSync(resolve(tmpdir(),'visibility-server-'));
@@ -31,7 +32,28 @@ test('server accepts IP/domain access and unmarked writes; credentials never exp
       ...(body?{body:JSON.stringify(body)}:{})});return {status:res.status,data:await res.json()};
   };
   try{
+    const seed = new Store(resolve(dir,'monitor.sqlite'));
+    try {
+      for (let i=0;i<2;i++) {
+        const job = seed.createJob({keywords:['source filter sample','another keyword']},'test');
+        for (const keyword of ['source filter sample','another keyword']) {
+          const id = seed.createQuery(job,keyword,{model:'test',thinking:false,rawFile:'test.sse'});
+          seed.finishQuery(id,{status:'completed',result:{sources:[
+            {url:'https://example.com/a',domain:'example.com',title:'A',searched:true,fetched:i===0,cited:false},
+            {url:'https://example.com/b',domain:'example.com',title:'B',searched:i===0,fetched:true,cited:true},
+          ].map(s=>({...s,snippet:'',publishedAt:null,siteName:null,searchRank:null})),citations:[]},durationMs:1});
+        }
+      }
+    } finally { seed.close(); }
     await start();
+    const sourcePath = '/sources?keyword='+encodeURIComponent('source filter sample');
+    const ranked = await request(sourcePath+'&sort=searched&direction=desc');
+    assert.equal(ranked.status,200);
+    assert.deepEqual(ranked.data.map(s=>s.title),['A','B']);
+    assert.deepEqual(ranked.data.map(s=>s.searched),[2,1]); // not doubled by another keyword
+    assert.deepEqual((await request(sourcePath+'&sort=searched&direction=asc')).data.map(s=>s.title),['B','A']);
+    assert.deepEqual((await request(sourcePath+'&sort=fetched')).data.map(s=>s.title),['B','A']);
+    assert.deepEqual((await request(sourcePath)).data.map(s=>s.title),['B','A']);
     const domainHeaders={Host:`monitor.example.test:${port}`,Origin:'https://another.example.test'};
     assert.equal((await request('/health','GET',undefined,domainHeaders)).status,200);
     const remoteKeyword=await request('/keywords','POST',{text:'remote access sample'},domainHeaders);
@@ -45,14 +67,14 @@ test('server accepts IP/domain access and unmarked writes; credentials never exp
     assert.equal((await request('/settings','PUT',{thinking:false,readUrls:false,scheduleEnabled:true,scheduleTimes:[nextTime],timezone:'UTC'})).status,200);
     assert.equal((await request('/health')).data.scheduler.state,'waiting_api_key');
     await request('/keywords','POST',{text:'isolated schedule test'});
-    assert.equal((await request('/jobs')).data.length,0);
+    assert.equal((await request('/jobs')).data.length,2);
     const key='sk-'+'test_http_placeholder_only';
     assert.equal((await request('/credentials','PUT',{apiKey:key},domainHeaders)).status,200);
     const saved=await request('/credentials','PUT',{apiKey:key});
     assert.equal(saved.status,200);assert.equal(JSON.stringify(saved).includes(key),false);
     assert.equal((await request('/health')).data.apiConfigured,true);
     assert.equal((await request('/health')).data.scheduler.state,'ready');
-    assert.equal((await request('/jobs')).data.length,0);
+    assert.equal((await request('/jobs')).data.length,2);
     for(const path of ['/settings','/credentials','/health','/jobs','/queries'])assert.equal(JSON.stringify(await request(path)).includes(key),false);
     assert.equal((await request('/credentials','PUT',{apiKey:'sk-invalid'})).status,400);
     await stop();await start('sk-'+'test_environment_fallback_only');
@@ -61,6 +83,6 @@ test('server accepts IP/domain access and unmarked writes; credentials never exp
     await stop();await start('sk-'+'test_environment_fallback_only');
     assert.equal((await request('/health')).data.apiConfigured,false);
     assert.equal((await request('/health')).data.scheduler.state,'waiting_api_key');
-    assert.equal((await request('/queries')).data.total,0);
+    assert.equal((await request('/queries')).data.total,4);
   }finally{await stop();rmSync(dir,{recursive:true,force:true});}
 });

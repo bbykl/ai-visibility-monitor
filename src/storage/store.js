@@ -166,13 +166,18 @@ export class Store {
       analyzed: this.db.prepare("SELECT COUNT(*) AS n FROM queries WHERE status='completed' AND extraction_status='completed'").get().n,
       sources: this.db.prepare('SELECT COUNT(DISTINCT source_id) AS n FROM query_sources s JOIN queries q ON q.id=s.query_id WHERE q.status=\'completed\'').get().n, daily, usage };
   }
-  topSources(keyword = '') {
+  topSources(keyword = '', { sort = 'cited', direction = 'desc' } = {}) {
+    // Only these aggregate columns can enter ORDER BY; request values never enter SQL directly.
+    const metrics = ['cited', 'fetched', 'searched'];
+    const column = metrics.includes(sort) ? sort : 'cited';
+    const order = direction === 'asc' ? 'ASC' : 'DESC';
+    const tieBreakers = metrics.filter(metric => metric !== column).map(metric => `${metric} DESC`);
     const rows = this.db.prepare(`SELECT s.url,s.domain, MAX(qs.title) AS title, COUNT(*) AS appearances,
       SUM(qs.searched) AS searched, SUM(qs.fetched) AS fetched,SUM(qs.cited) AS cited,
       json_group_array(DISTINCT q.keyword) AS keywords
       FROM sources s JOIN query_sources qs ON qs.source_id=s.id JOIN queries q ON q.id=qs.query_id
       WHERE q.status='completed' AND (?='' OR q.keyword=?)
-      GROUP BY s.id ORDER BY cited DESC, fetched DESC, searched DESC, s.url`).all(keyword, keyword);
+      GROUP BY s.id ORDER BY ${column} ${order}, ${tieBreakers.join(', ')}, s.url`).all(keyword, keyword);
     return rows.map(r => ({ ...r, keywords: decode(r.keywords) }));
   }
   companyStats({ keyword = '', company = '', aliases = [] } = {}) {

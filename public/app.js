@@ -82,11 +82,28 @@ async function companyStats() {
   $('#company-frequency-note').textContent = `当前范围 ${data.companies.length} 家公司 · 点击名称计算 · 提及不代表正面推荐`;
   $('#company-frequencies').innerHTML = data.companies.length ? `<div class="frequency-grid">${data.companies.map(c => `<button class="company-card ${c.name === company ? 'selected' : ''}" data-company="${esc(c.name)}"><span class="company-avatar">${esc(c.name.slice(0,1))}</span><span class="company-card-name">${esc(c.name)}<small>${c.count} 份回答中出现</small></span><strong>${percent(c.rate)}<span>↗</span></strong></button>`).join('')}</div>` : empty('暂无可统计的公司名称。');
 }
+let sourcesRequest = 0;
 async function sources() {
-  const all = await api('/sources?' + new URLSearchParams({keyword:$('#source-keyword').value}));
-  const stage = $('#source-stage').value, rows = all.filter(s => stage === 'all' || s[stage] > 0);
-  $('#source-count').textContent = `${rows.length} 条来源 / 共 ${all.length} 条`;
-  $('#sources-table').innerHTML = rows.length ? `<div class="table-scroll"><table class="sources-table"><thead><tr><th>来源 / 页面</th><th>查询关键词</th><th>检索</th><th>读取</th><th>引用</th></tr></thead><tbody>${rows.map(s => `<tr><td>${link(s.url,s.title || s.domain)}<div class="subline">${esc(s.domain)}</div></td><td><div class="keyword-chips">${s.keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div></td><td>${num(s.searched)}</td><td><span class="${s.fetched ? 'positive' : 'muted'}">${num(s.fetched)}</span></td><td><span class="${s.cited ? 'positive' : 'muted'}">${num(s.cited)}</span></td></tr>`).join('')}</tbody></table></div>` : empty('当前筛选范围内没有来源。');
+  const request = ++sourcesRequest, stage = $('#source-stage').value;
+  const [sort, direction] = $('#source-sort').value.split('-');
+  $('#source-count').textContent = '正在更新来源…';
+  $('#sources-table').setAttribute('aria-busy', 'true');
+  try {
+    const all = await api('/sources?' + new URLSearchParams({keyword:$('#source-keyword').value,sort,direction}));
+    if (request !== sourcesRequest) return;
+    const rows = all.filter(s => stage === 'all' || s[stage] > 0);
+    const headers = [['searched','检索'],['fetched','读取'],['cited','引用']].map(([key,label]) =>
+      `<th aria-sort="${sort === key ? direction === 'asc' ? 'ascending' : 'descending' : 'none'}"><button class="source-sort-button ${sort === key ? 'active' : ''}" data-source-sort="${key}" title="按${label}次数排序">${label}<span aria-hidden="true">${sort === key ? direction === 'asc' ? '↑' : '↓' : '↕'}</span></button></th>`).join('');
+    $('#source-count').textContent = `${rows.length} 条来源 / 当前关键词范围共 ${all.length} 条`;
+    $('#sources-table').innerHTML = rows.length ? `<div class="table-scroll"><table class="sources-table"><thead><tr><th>来源 / 页面 URL</th><th>查询关键词</th>${headers}</tr></thead><tbody>${rows.map(s => `<tr><td>${link(s.url,s.title || s.domain)}<div class="subline source-url">${esc(s.url)}</div></td><td><div class="keyword-chips">${s.keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div></td><td>${num(s.searched)}</td><td><span class="${s.fetched ? 'positive' : 'muted'}">${num(s.fetched)}</span></td><td><span class="${s.cited ? 'positive' : 'muted'}">${num(s.cited)}</span></td></tr>`).join('')}</tbody></table></div>` : empty('当前筛选范围内没有来源。');
+  } catch (error) {
+    if (request !== sourcesRequest) return;
+    $('#source-count').textContent = '来源更新失败';
+    $('#sources-table').innerHTML = empty('加载失败，请重新选择筛选或排序后重试。');
+    throw error;
+  } finally {
+    if (request === sourcesRequest) $('#sources-table').removeAttribute('aria-busy');
+  }
 }
 async function showView() {
   currentView = location.hash.slice(1); if (!descriptions[currentView]) currentView = 'overview';
@@ -184,7 +201,20 @@ $('#job-form').addEventListener('submit', event => { event.preventDefault(); act
 }); });
 $('#analysis-form').addEventListener('submit',event => {event.preventDefault();action(companyStats);});
 $('#analysis-keyword').addEventListener('change',()=>action(companyStats));
-$('#source-keyword').addEventListener('change',()=>action(sources)); $('#source-stage').addEventListener('change',()=>action(sources));
+$('#source-keyword').addEventListener('change',()=>action(sources));
+$('#source-stage').addEventListener('change',()=>{
+  const stage = $('#source-stage').value;
+  if (stage !== 'all') $('#source-sort').value = `${stage}-desc`;
+  action(sources);
+});
+$('#source-sort').addEventListener('change',()=>action(sources));
+$('#sources-table').addEventListener('click',event=>{
+  const button = event.target.closest('[data-source-sort]');
+  if (!button) return;
+  const [sort,direction] = $('#source-sort').value.split('-'), nextSort = button.dataset.sourceSort;
+  $('#source-sort').value = `${nextSort}-${sort === nextSort && direction === 'desc' ? 'asc' : 'desc'}`;
+  action(sources);
+});
 $('#query-keyword').addEventListener('change',()=>{queryOffset=0;action(loadQueries);});
 $('#query-prev').addEventListener('click',()=>{queryOffset=Math.max(0,queryOffset-20);action(loadQueries);});
 $('#query-next').addEventListener('click',()=>{queryOffset+=20;action(loadQueries);});
